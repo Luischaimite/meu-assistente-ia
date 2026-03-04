@@ -1,40 +1,49 @@
 import os
 from flask import Flask, render_template_string, request, jsonify
-import requests
+import g4f
 
-# Esta linha é a mais importante! O Render precisa deste nome 'app'
 app = Flask(__name__)
 
-API_KEY = 'AIzaSyD_k1A8XvB2m3N4P5Q6R7S8T9U0V1W2X3Y'
-
-def gemini_chat(pergunta):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-    payload = {"contents": [{"parts": [{"text": pergunta}]}]}
+def chat_ia(pergunta):
     try:
-        res = requests.post(url, json=payload)
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
-    except:
-        return "IA: Estou a pensar... tenta perguntar outra vez."
+        response = g4f.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": pergunta}],
+        )
+        return response
+    except Exception as e:
+        return "IA: Tive um pequeno problema técnico... tenta perguntar outra vez!"
 
 HTML = '''
 <!DOCTYPE html>
 <html>
 <head><title>IA do Luis</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="background:#121212; color:white; font-family:sans-serif; text-align:center; padding:20px;">
-    <h2>🤖 Assistente do Luis</h2>
-    <div id="chat" style="height:300px; overflow:auto; background:#1e1e1e; padding:15px; border-radius:10px; text-align:left; margin-bottom:10px;"></div>
-    <input type="text" id="msg" placeholder="Escreve aqui..." style="width:70%; padding:10px; border-radius:5px; border:none;">
-    <button onclick="enviar()" style="padding:10px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">Enviar</button>
+    <h2>🤖 Assistente do Luis (Versão B)</h2>
+    <div id="chat" style="height:350px; overflow:auto; background:#1e1e1e; padding:15px; border-radius:10px; text-align:left; margin-bottom:10px; border: 1px solid #333;"></div>
+    <input type="text" id="msg" placeholder="Escreve aqui..." style="width:70%; padding:12px; border-radius:5px; border:none; outline:none;">
+    <button onclick="enviar()" style="padding:12px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">Enviar</button>
     <script>
         async function enviar(){
             let i = document.getElementById('msg');
             let c = document.getElementById('chat');
             if(!i.value) return;
-            c.innerHTML += "<div><b>Tu:</b> "+i.value+"</div>";
-            let res = await fetch('/chat?msg='+encodeURIComponent(i.value));
-            let data = await res.json();
-            c.innerHTML += "<div style='color:#00ff00; margin-top:5px;'><b>IA:</b> "+data.res+"</div>";
+            let userMsg = i.value;
+            c.innerHTML += "<div style='margin-bottom:10px;'><b>Tu:</b> "+userMsg+"</div>";
+            i.value = "A processar...";
+            i.disabled = true;
+            
+            try {
+                let res = await fetch('/chat?msg='+encodeURIComponent(userMsg));
+                let data = await res.json();
+                c.innerHTML += "<div style='color:#00d4ff; margin-bottom:15px;'><b>IA:</b> "+data.res+"</div>";
+            } catch(e) {
+                c.innerHTML += "<div style='color:red;'>Erro ao ligar ao servidor.</div>";
+            }
+            
             i.value = "";
+            i.disabled = false;
+            i.focus();
             c.scrollTop = c.scrollHeight;
         }
     </script>
@@ -49,7 +58,8 @@ def home():
 @app.route('/chat')
 def chat():
     msg = request.args.get('msg')
-    return jsonify({"res": gemini_chat(msg)})
+    resposta = chat_ia(msg)
+    return jsonify({"res": resposta})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
