@@ -5,7 +5,7 @@ import requests
 # Esta linha é a mais importante! O Render precisa deste nome 'app'
 app = Flask(__name__)
 
-API_KEY = 'AIzaSyBHJ6arSXoevvw5ru9Z3bw7zgdYaKdxymw'
+API_KEY = 'AIzaSyD_7X7R0S5vY7Z2N8M6L4K2J1H0G9F8E7D6'
 
 def gemini_chat(pergunta):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
